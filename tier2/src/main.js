@@ -44,7 +44,19 @@ async function startClientWithCrypto(c) {
   // crypto ストアをデバイス別に分離（再ログインで新デバイスになっても旧ストアと衝突しない）
   const prefix = ("mywiki_" + c.getUserId() + "_" + c.getDeviceId()).replace(/[^A-Za-z0-9_]/g, "_");
   await c.initRustCrypto({ useIndexedDB: true, cryptoDatabasePrefix: prefix });
-  await c.startClient({ initialSyncLimit: 50 });
+  // knagato は多数ルームに参加しているため、Wiki ルームだけに絞って sync を高速化する。
+  // to_device / device_lists（E2EE 用）は room フィルタの対象外なので暗号化は問題なく動く。
+  const filter = new sdk.Filter(c.getUserId());
+  filter.setDefinition({
+    room: {
+      rooms: [roomId],                      // このルームだけ同期
+      timeline: { limit: 30 },
+      state: { lazy_load_members: true },
+      ephemeral: { types: [] },             // タイピング/既読は不要
+    },
+    presence: { types: [] },                // 他ユーザーのプレゼンスも不要
+  });
+  await c.startClient({ filter, initialSyncLimit: 20 });
   await new Promise((res) => {
     const onSync = (state) => { if (state === "PREPARED") { c.off("sync", onSync); res(); } };
     c.on("sync", onSync);
@@ -230,7 +242,7 @@ async function boot() {
   $("whoami").textContent = client.getUserId();
   await refresh();
 }
-async function refresh() {
+async function refresh(skipOpen = false) {
   setStatus("同期中…");
   pages = listPointers();
   // 保存直後は sendStateEvent がまだ sync に反映されていないことがあるため、現在ページを即マージ
@@ -245,6 +257,7 @@ async function refresh() {
     li.onclick = () => open(p.slug); ul.appendChild(li);
   });
   setStatus("");
+  if (skipOpen) return;                 // 保存直後など、呼び出し側が描画を担当する場合
   if (!current && pages.length) open(pages[0].slug);
   else if (current) open(current.slug);
   else showEmpty();
@@ -288,7 +301,13 @@ async function save() {
   try {
     const eid = await savePage(slug, title, body, draftImages);
     current = { slug, title, raw: body, images: draftImages, eid }; editing = false;
-    await refresh(); open(slug);
+    setMode();
+    // 一覧だけ更新し、本文・画像はメモリの下書きから直接描画（再取得しないので即時反映）
+    await refresh(true);
+    $("curTitle").textContent = title;
+    $("meta").textContent = "🔒 暗号化 event: " + eid;
+    $("view").innerHTML = md(body);
+    await resolveEncImages($("view"), draftImages);
   } catch (e) { $("saveErr").textContent = e.message || String(e); }
   finally { $("saveBtn").disabled = false; setStatus(""); }
 }
@@ -320,10 +339,12 @@ async function login() {
     const sess = { baseUrl, accessToken: res.access_token, userId: res.user_id, deviceId: res.device_id, roomId };
     localStorage.setItem(LS, JSON.stringify(sess));
     await afterAuth(sess);
-  } catch (e) { $("loginErr").textContent = e.message || String(e); setStatus(""); }
+  } catch (e) { $("login").style.display = "block"; $("loginErr").textContent = e.message || String(e); setStatus(""); }
 }
 
 async function afterAuth(sess) {
+  $("login").style.display = "none";
+  setStatus("🔒 接続中…（対象ルームのみ同期）");
   roomId = sess.roomId || DEFAULT_ROOM;
   // 古いセッションでドメイン欠落 ID が保存されている場合の補完
   const domain = (sess.userId || "").split(":")[1];
@@ -406,5 +427,5 @@ $("imgFile").onchange = async (e) => {
   const s = localStorage.getItem(LS);
   if (!s) return;
   try { await afterAuth(JSON.parse(s)); }
-  catch (e) { console.error(e); localStorage.removeItem(LS); }
+  catch (e) { console.error(e); localStorage.removeItem(LS); $("login").style.display = "block"; setStatus(""); }
 })();
