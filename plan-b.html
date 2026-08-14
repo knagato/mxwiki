@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyWiki (案B: 本文=media)</title>
+<style>
+  :root { --bg:#fff; --fg:#1b1b1f; --muted:#6b6b76; --line:#e3e3ea; --accent:#0f766e; --sidebar:#f7f7fa; }
+  @media (prefers-color-scheme: dark){
+    :root { --bg:#16161a; --fg:#e7e7ea; --muted:#9a9aa5; --line:#2b2b33; --accent:#2dd4bf; --sidebar:#1d1d22; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Segoe UI",sans-serif; color:var(--fg); background:var(--bg); }
+  #login { max-width:360px; margin:12vh auto; padding:24px; }
+  #login h1 { font-size:20px; }
+  #login label { display:block; margin:12px 0 4px; font-size:13px; color:var(--muted); }
+  #login input { width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); font-size:14px; }
+  button { cursor:pointer; border:1px solid var(--line); background:var(--bg); color:var(--fg); padding:8px 14px; border-radius:8px; font-size:14px; }
+  button.primary { background:var(--accent); color:#fff; border-color:transparent; }
+  button:disabled { opacity:.5; cursor:default; }
+  #app { display:none; grid-template-columns:260px 1fr; height:100vh; }
+  #sidebar { background:var(--sidebar); border-right:1px solid var(--line); display:flex; flex-direction:column; }
+  #sidebar header { padding:14px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; }
+  .badge{font-size:11px;background:var(--accent);color:#fff;padding:2px 7px;border-radius:10px;}
+  #pages { list-style:none; margin:0; padding:6px; overflow:auto; flex:1; }
+  #pages li { padding:8px 10px; border-radius:7px; cursor:pointer; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #pages li:hover { background:var(--line); }
+  #pages li.active { background:var(--accent); color:#fff; }
+  #sidebar footer { padding:10px 12px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  #main { display:flex; flex-direction:column; overflow:hidden; }
+  #toolbar { padding:10px 20px; border-bottom:1px solid var(--line); display:flex; gap:8px; align-items:center; }
+  #toolbar .title { font-weight:600; flex:1; }
+  #view { padding:24px 32px; overflow:auto; flex:1; }
+  #meta { font-size:12px; color:var(--muted); padding:0 32px 8px; word-break:break-all; }
+  #editor { display:none; flex-direction:column; flex:1; padding:16px 20px; gap:10px; }
+  #editor input.pgtitle { padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); font-size:15px; }
+  #editor textarea { flex:1; resize:none; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .prose h1{font-size:26px;margin:.2em 0 .5em} .prose h2{font-size:20px;margin:1em 0 .4em}
+  .prose code{background:var(--sidebar);padding:1px 5px;border-radius:4px;font-size:.9em}
+  .prose pre{background:var(--sidebar);padding:12px;border-radius:8px;overflow:auto}
+  .prose a{color:var(--accent)}
+  .err { color:#c92a2a; font-size:13px; margin-top:8px; min-height:18px; }
+  .muted { color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h1>MyWiki <span class="badge">案B</span></h1>
+  <p class="muted" style="font-size:13px">本文を media repo に保存し、state は mxc ポインタだけ持つ方式（timeline に出ない）。</p>
+  <label>ホームサーバー</label>
+  <input id="hs" value="https://matrix.example.org">
+  <label>ユーザー名 (@ の前だけ)</label>
+  <input id="user" placeholder="knagato" autocomplete="username">
+  <label>パスワード</label>
+  <input id="pw" type="password" autocomplete="current-password">
+  <div style="margin-top:16px"><button class="primary" id="loginBtn">ログイン</button></div>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div id="app">
+  <aside id="sidebar">
+    <header><b>📖 MyWiki</b><span class="badge">案B</span><button id="newBtn" title="新規ページ">＋</button></header>
+    <ul id="pages"></ul>
+    <footer><span id="whoami" class="muted"></span><button id="logoutBtn">ログアウト</button></footer>
+  </aside>
+  <section id="main">
+    <div id="toolbar">
+      <span class="title" id="curTitle"></span>
+      <button id="editBtn">編集</button>
+      <button class="primary" id="saveBtn" style="display:none">保存</button>
+      <button id="cancelBtn" style="display:none">取消</button>
+    </div>
+    <div id="meta"></div>
+    <div id="view" class="prose"></div>
+    <div id="editor">
+      <input class="pgtitle" id="edTitle" placeholder="ページタイトル">
+      <div><button id="imgBtn" type="button">🖼 画像を挿入</button> <input type="file" id="imgFile" accept="image/*" style="display:none"> <span id="imgStatus" class="muted" style="font-size:12px"></span></div>
+      <textarea id="edBody" placeholder="Markdown で本文を書く…（画像は上のボタンから挿入）"></textarea>
+      <div class="err" id="saveErr"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ===== 設定 =====
+const ROOM_ID = "!wiki:example.org";
+const PAGE_TYPE = "com.example.wiki.page_b"; // 案B: state はポインタ {title, mxc}
+const LS = "mywiki.session";
+
+const api = {
+  hs:null, token:null, uid:null,
+  async login(hs, user, pw){
+    const r = await fetch(hs+"/_matrix/client/v3/login",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({type:"m.login.password",identifier:{type:"m.id.user",user},password:pw})});
+    if(!r.ok) throw new Error((await r.json()).error||"ログイン失敗");
+    const d = await r.json(); this.hs=hs; this.token=d.access_token; this.uid=d.user_id;
+    localStorage.setItem(LS, JSON.stringify({hs, token:this.token, uid:this.uid}));
+  },
+  restore(){ const s=localStorage.getItem(LS); if(!s) return false; const d=JSON.parse(s); this.hs=d.hs; this.token=d.token; this.uid=d.uid; return true; },
+  logout(){ localStorage.removeItem(LS); this.token=null; },
+  hj(){ return {"Authorization":"Bearer "+this.token,"Content-Type":"application/json"}; },
+  enc(s){ return encodeURIComponent(s); },
+
+  async listPages(){
+    const r = await fetch(`${this.hs}/_matrix/client/v3/rooms/${this.enc(ROOM_ID)}/state`,{headers:this.hj()});
+    if(!r.ok) throw new Error("一覧取得に失敗（ルームに参加していますか？）");
+    return (await r.json()).filter(e=>e.type===PAGE_TYPE && e.state_key)
+      .map(e=>({slug:e.state_key, title:e.content.title||e.state_key, mxc:e.content.mxc}))
+      .sort((a,b)=>a.title.localeCompare(b.title,"ja"));
+  },
+  // mxc://server/id → 認証付き client/v1 media でダウンロード
+  async loadBody(mxc){
+    if(!mxc) return "";
+    const m = mxc.match(/^mxc:\/\/([^/]+)\/(.+)$/); if(!m) return "(不正な mxc)";
+    const r = await fetch(`${this.hs}/_matrix/client/v1/media/download/${m[1]}/${m[2]}`,
+      {headers:{"Authorization":"Bearer "+this.token}});
+    if(!r.ok) return "(本文の取得に失敗: http "+r.status+")";
+    return await r.text();
+  },
+  // mxc の画像を認証付き取得して object URL 化（<img src> は認証不可のため）
+  async mxcObjectURL(mxc){
+    const m = mxc.match(/^mxc:\/\/([^/]+)\/(.+)$/); if(!m) return "";
+    const r = await fetch(`${this.hs}/_matrix/client/v1/media/download/${m[1]}/${m[2]}`,
+      {headers:{"Authorization":"Bearer "+this.token}});
+    if(!r.ok) return "";
+    return URL.createObjectURL(await r.blob());
+  },
+  // 画像ファイルを media にアップロードして mxc を返す
+  async uploadImage(file){
+    const r = await fetch(`${this.hs}/_matrix/media/v3/upload?filename=${this.enc(file.name||"image")}`,
+      {method:"POST",headers:{"Authorization":"Bearer "+this.token,"Content-Type":file.type||"application/octet-stream"},body:file});
+    if(!r.ok) throw new Error((await r.json()).error||"画像アップロードに失敗");
+    return (await r.json()).content_uri;
+  },
+  // 保存: ①本文を media にアップロード → ②state ポインタ更新（timeline に何も送らない）
+  async savePage(slug, title, body){
+    const up = await fetch(`${this.hs}/_matrix/media/v3/upload?filename=${this.enc(slug)}.md`,
+      {method:"POST",headers:{"Authorization":"Bearer "+this.token,"Content-Type":"text/markdown"},body:body});
+    if(!up.ok) throw new Error((await up.json()).error||"アップロードに失敗");
+    const mxc = (await up.json()).content_uri;
+    const pr = await fetch(`${this.hs}/_matrix/client/v3/rooms/${this.enc(ROOM_ID)}/state/${PAGE_TYPE}/${this.enc(slug)}`,
+      {method:"PUT",headers:this.hj(),body:JSON.stringify({title, mxc, content_type:"text/markdown", updated_by:this.uid})});
+    if(!pr.ok) throw new Error((await pr.json()).error||"ポインタ更新に失敗");
+    return mxc;
+  }
+};
+
+function md(src){
+  const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const lines=esc(src).split("\n"); let out=[],inList=false,inCode=false;
+  const img=(alt,url)=> url.startsWith("mxc://")
+    ? `<img alt="${alt}" data-mxc="${url}" style="max-width:100%;border-radius:8px">`
+    : `<img alt="${alt}" src="${url}" style="max-width:100%;border-radius:8px">`;
+  const inline=s=>s.replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>")
+    .replace(/\*([^*]+)\*/g,"<i>$1</i>")
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g,(_,a,u)=>img(a,u))
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  for(let l of lines){
+    if(l.trim().startsWith("```")){ if(inCode){out.push("</pre>");inCode=false} else {out.push("<pre>");inCode=true} continue; }
+    if(inCode){ out.push(l); continue; }
+    let m;
+    if(m=l.match(/^(#{1,3})\s+(.*)/)){ if(inList){out.push("</ul>");inList=false} out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); continue; }
+    if(m=l.match(/^[-*]\s+(.*)/)){ if(!inList){out.push("<ul>");inList=true} out.push(`<li>${inline(m[1])}</li>`); continue; }
+    if(inList){out.push("</ul>");inList=false}
+    if(l.trim()==="") out.push("<br>"); else out.push(`<p>${inline(l)}</p>`);
+  }
+  if(inList)out.push("</ul>"); if(inCode)out.push("</pre>"); return out.join("\n");
+}
+
+const $=id=>document.getElementById(id);
+let pages=[], current=null, editing=false;
+
+async function boot(){ $("login").style.display="none"; $("app").style.display="grid"; $("whoami").textContent=api.uid; await refresh(); }
+async function refresh(){
+  try{ pages = await api.listPages(); }catch(e){ alert(e.message); return; }
+  const ul=$("pages"); ul.innerHTML="";
+  pages.forEach(p=>{ const li=document.createElement("li"); li.textContent=p.title; li.dataset.slug=p.slug;
+    if(current&&current.slug===p.slug) li.className="active"; li.onclick=()=>open(p.slug); ul.appendChild(li); });
+  if(!current && pages.length) open(pages[0].slug);
+  else if(current) open(current.slug); else showEmpty();
+}
+function showEmpty(){ $("curTitle").textContent=""; $("meta").textContent=""; $("view").innerHTML='<p class="muted">ページがありません。＋ で作成してください。</p>'; }
+async function open(slug){
+  current = pages.find(p=>p.slug===slug); if(!current) return;
+  editing=false; setMode();
+  $("curTitle").textContent=current.title;
+  [...$("pages").children].forEach(li=>li.className = li.dataset.slug===slug?"active":"");
+  $("meta").textContent="本文 media: "+(current.mxc||"(なし)");
+  $("view").innerHTML='<p class="muted">読み込み中…</p>';
+  const body = await api.loadBody(current.mxc); current.body=body;
+  $("view").innerHTML=md(body);
+  resolveImages($("view"));
+}
+// data-mxc の画像を認証付き取得して差し込む
+async function resolveImages(root){
+  for(const el of root.querySelectorAll("img[data-mxc]")){
+    const url = await api.mxcObjectURL(el.dataset.mxc);
+    if(url) el.src = url; else el.alt = "(画像取得失敗) "+el.alt;
+  }
+}
+function setMode(){ $("view").style.display=editing?"none":"block"; $("editor").style.display=editing?"flex":"none";
+  $("editBtn").style.display=editing?"none":"inline-block"; $("saveBtn").style.display=editing?"inline-block":"none"; $("cancelBtn").style.display=editing?"inline-block":"none"; }
+function startEdit(){ editing=true; setMode(); $("saveErr").textContent=""; $("edTitle").value=current?current.title:""; $("edBody").value=current?(current.body||""):""; }
+async function save(){
+  const title=$("edTitle").value.trim()||"無題"; const body=$("edBody").value;
+  let slug = current ? current.slug : slugify(title);
+  $("saveBtn").disabled=true;
+  try{ const mxc=await api.savePage(slug,title,body); current={slug,title,body,mxc}; editing=false; await refresh(); open(slug); }
+  catch(e){ $("saveErr").textContent=e.message; } finally{ $("saveBtn").disabled=false; }
+}
+function slugify(t){ const b=t.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,""); return b||("page-b-"+Math.floor(performance.now())); }
+function newPage(){ current=null; startEdit(); $("curTitle").textContent="新規ページ"; $("meta").textContent=""; }
+
+$("loginBtn").onclick=async()=>{ $("loginErr").textContent=""; try{ await api.login($("hs").value.trim(),$("user").value.trim(),$("pw").value); await boot(); }catch(e){ $("loginErr").textContent=e.message; } };
+$("logoutBtn").onclick=()=>{ api.logout(); location.reload(); };
+$("editBtn").onclick=startEdit; $("cancelBtn").onclick=()=>{ editing=false; if(current)open(current.slug); else showEmpty(); };
+$("saveBtn").onclick=save; $("newBtn").onclick=newPage;
+// 画像挿入: ファイル選択 → media アップロード → カーソル位置に ![](mxc://…) を挿入
+$("imgBtn").onclick=()=>$("imgFile").click();
+$("imgFile").onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  $("imgStatus").textContent="アップロード中…";
+  try{
+    const mxc=await api.uploadImage(f);
+    const ta=$("edBody"); const pos=(ta.selectionStart!=null)?ta.selectionStart:ta.value.length;
+    const snip=`\n![${f.name}](${mxc})\n`;
+    ta.value = ta.value.slice(0,pos)+snip+ta.value.slice(pos);
+    $("imgStatus").textContent="挿入しました: "+mxc;
+  }catch(err){ $("imgStatus").textContent=err.message; }
+  finally{ e.target.value=""; }
+};
+if(api.restore()) boot().catch(()=>{ api.logout(); });
+</script>
+</body>
+</html>

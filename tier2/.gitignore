@@ -1,0 +1,8 @@
+# 依存・ビルド生成物・証明書は追跡しない
+node_modules/
+dist/
+.vite/
+.certs/
+*.crt
+*.key
+.node-version
