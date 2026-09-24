@@ -1,0 +1,72 @@
+# Everything on one machine, to try mxwiki end to end in a browser:
+#   Synapse (throwaway, open registration)  http://localhost:18914
+#   Element Web + the header-button module  http://localhost:18915
+#   mxwiki widget (built from this repo)    http://localhost:18916
+#
+#   cd examples/local
+#   docker compose up -d --build
+#   ./setup.sh                 # user, room, pages, widget pin
+#   docker compose down -v     # remove everything
+#
+# Local only: every port is bound to 127.0.0.1 and Synapse accepts anyone.
+name: mxwiki-local
+
+services:
+  synapse-init:
+    image: matrixdotorg/synapse:latest
+    environment:
+      SYNAPSE_SERVER_NAME: localhost
+      SYNAPSE_REPORT_STATS: "no"
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        [ -f /data/homeserver.yaml ] && exit 0
+        /start.py generate
+        cat >> /data/homeserver.yaml <<EOF
+
+        public_baseurl: http://localhost:18914/
+        enable_registration: true
+        enable_registration_without_verification: true
+        rc_message: {per_second: 1000, burst_count: 1000}
+        rc_registration: {per_second: 1000, burst_count: 1000}
+        rc_login:
+          address: {per_second: 1000, burst_count: 1000}
+          account: {per_second: 1000, burst_count: 1000}
+          failed_attempts: {per_second: 1000, burst_count: 1000}
+        EOF
+    volumes:
+      - synapse_data:/data
+
+  synapse:
+    image: matrixdotorg/synapse:latest
+    depends_on:
+      synapse-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:18914:8008"
+    volumes:
+      - synapse_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8008/health"]
+      interval: 2s
+      retries: 60
+
+  element:
+    image: vectorim/element-web:latest
+    ports:
+      - "127.0.0.1:18915:80"
+    volumes:
+      - ./element-config.json:/app/config.json:ro
+      # The image serves /modules and adds every /modules/<name>/index.js to config.json "modules".
+      - ../../element-module/widget-button.js:/modules/mxwiki/index.js:ro
+
+  wiki:
+    build:
+      context: ../..
+    environment:
+      MXWIKI_FRAME_ANCESTORS: http://localhost:18915
+    ports:
+      - "127.0.0.1:18916:80"
+
+volumes:
+  synapse_data:

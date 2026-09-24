@@ -67,6 +67,11 @@ Element asks them to approve its three capabilities.
    }
    ```
 
+With the official Element Web Docker image, mount the file as a directory module instead:
+`widget-button.js` → `/modules/mxwiki/index.js`. The image serves `/modules` and adds every
+`/modules/<name>/index.js` to `modules` in `config.json` by itself, so leave `modules` out of
+your config (listing it too would load the module twice). `examples/local/` does this.
+
 Rooms with the widget pinned get a "Wiki" button in the header that toggles the widget in the
 right panel. The button depends on Element's header markup (see README, "Element button");
 if it stops appearing after an Element upgrade, the wiki itself is unaffected.

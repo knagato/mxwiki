@@ -13,8 +13,7 @@ the room's members can read the wiki, and its power levels decide who edits it.
 - **element-module/**: an optional Element Web module that adds a "Wiki" button to the room
   header.
 
-<!-- Screenshot: widget in Element's right panel (page tree + rendered page). -->
-> _Screenshot to come._
+![mxwiki in Element's right panel: the page tree with folders, and the Home page with [[links]], one of them dashed because the page does not exist yet](docs/images/screenshot.png)
 
 ## Try it in 5 minutes
 
@@ -61,7 +60,7 @@ the room header, so the module inserts the button by cloning an existing header 
 Element update changes that markup, the button just disappears — the wiki itself still opens
 from the Extensions panel. Setup: [docs/DEPLOY.md §4](docs/DEPLOY.md).
 
-Checked with Element Web: _to be recorded before the first release_.
+Checked with Element Web 1.12.29 (header button, widget in the right panel, capability approval, editing).
 
 ## Documentation
 

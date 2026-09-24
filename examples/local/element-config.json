@@ -1,0 +1,15 @@
+{
+  "default_server_config": {
+    "m.homeserver": {
+      "base_url": "http://localhost:18914",
+      "server_name": "localhost"
+    }
+  },
+  "disable_custom_urls": true,
+  "disable_guests": true,
+  "brand": "Element (mxwiki local)",
+  "com.knatrix.mxwiki": {
+    "host": "localhost:18916",
+    "path": "/"
+  }
+}

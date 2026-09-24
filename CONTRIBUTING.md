@@ -31,6 +31,23 @@ uvx ruff check .
 uv tool install --editable .     # mxwiki / mxsearch on PATH
 ```
 
+### Try it in Element (local Docker)
+
+`examples/local/` runs Synapse, Element Web (with the header-button module) and the widget
+built from this checkout, all bound to 127.0.0.1:
+
+```sh
+cd examples/local
+docker compose up -d --build
+./setup.sh               # user alice / mxwiki-local, a room with pages, widget pinned
+# open http://localhost:18915, sign in, open the room, click the book icon in the header
+docker compose down -v   # remove everything
+```
+
+Ports 18914 (Synapse), 18915 (Element), 18916 (widget). `scripts/synapse-dev.sh` also uses
+18914, so stop one before starting the other. After changing the widget, rebuild with
+`docker compose up -d --build wiki`.
+
 ### End-to-end test
 
 The harness (`widget/test/harness.html`) stands in for Element: it hosts the widget in an

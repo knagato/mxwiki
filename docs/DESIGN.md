@@ -76,7 +76,8 @@ than the client's timeline; it stays experimental until verified end to end (SPE
 - `new WidgetApi(widgetId, clientOrigin)` takes the client origin from the `parentUrl`
   query parameter the client adds.
 - Element shows one approval dialog for the three capabilities (SPEC §7) the first time the
-  widget is opened.
+  widget is opened. It labels the state capabilities "with empty state key", but they cover
+  every state key: pages under any slug are read and saved (checked with Element Web 1.12.29).
 - No call passes `room_id`: doing so needs the `timeline:<room>` capability.
 
 ## The CLI
