@@ -38,8 +38,16 @@ if (seeded) {
   console.log("seeded home + harness/linked");
 }
 
-const vite = spawn("pnpm", ["exec", "vite", "--port", String(PORT), "--strictPort"], { stdio: ["ignore", "pipe", "inherit"] });
-await new Promise((res, rej) => { vite.stdout.on("data", (d) => { if (String(d).includes("Local:")) res(); }); vite.on("exit", rej); });
+// Poll the port rather than parse vite's banner: with CI set it is coloured, and
+// "Local:" never appears as one string.
+const vite = spawn("pnpm", ["exec", "vite", "--port", String(PORT), "--strictPort"], { stdio: ["ignore", "inherit", "inherit"] });
+let viteExited = false;
+vite.on("exit", () => { viteExited = true; });
+for (let i = 0; ; i++) {
+  try { if ((await fetch(`http://localhost:${PORT}/`)).ok) break; } catch {}
+  if (viteExited || i > 60) { vite.kill(); throw new Error(`vite did not come up on port ${PORT}`); }
+  await new Promise((r) => setTimeout(r, 500));
+}
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ["--no-first-run", "--no-sandbox"] });
 try {

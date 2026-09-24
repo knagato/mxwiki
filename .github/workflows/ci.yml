@@ -58,6 +58,7 @@ jobs:
   e2e:
     name: Widget E2E (local Synapse)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # A services: container cannot be given a generated homeserver.yaml before
     # it starts, so Synapse is started by the same script used locally.
     steps:
