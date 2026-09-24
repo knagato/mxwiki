@@ -1,0 +1,31 @@
+{
+  "comment": "Wire-format test vectors (docs/SPEC.md). Both the widget (widget/test/unit.test.mjs) and the CLI (cli/tests) load this file, so the two implementations cannot drift apart.",
+  "page_type": "com.knatrix.mxwiki.page",
+  "widget_state_key": "com.knatrix.mxwiki",
+  "max_body_bytes": 49152,
+  "slug_valid": [
+    "home",
+    "a",
+    "0",
+    "minutes/2026-09-14",
+    "a.b_c-d",
+    "x/y/z",
+    "topic/v1.2",
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "slug_invalid": [
+    "",
+    "Home",
+    "-home",
+    ".hidden",
+    "_x",
+    "a//b",
+    "/a",
+    "a/",
+    "a/-b",
+    "a b",
+    "ページ",
+    "a/.b",
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ]
+}

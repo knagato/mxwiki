@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mxwiki"
+dynamic = ["version"]
+description = "A Matrix room as a page-oriented wiki: CLI for pages stored as room state, plus room-history search"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "knagato" }]
+requires-python = ">=3.10"
+dependencies = []
+keywords = ["matrix", "wiki", "element", "widget", "cli"]
+classifiers = [
+  "Environment :: Console",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Communications :: Chat",
+]
+
+[project.urls]
+Homepage = "https://github.com/knagato/mxwiki"
+Specification = "https://github.com/knagato/mxwiki/blob/main/docs/SPEC.md"
+
+[project.scripts]
+mxwiki = "mxwiki.wiki:main"
+mxsearch = "mxwiki.search:main"
+
+[tool.hatch.version]
+path = "src/mxwiki/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mxwiki"]
+
+[tool.ruff]
+line-length = 200
+target-version = "py310"
+
+[tool.ruff.lint]
+# E401/E702: the CLI keeps the compact one-line style of its argparse tables.
+ignore = ["E401", "E702", "E741"]

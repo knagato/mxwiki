@@ -1,0 +1,11 @@
+node_modules/
+widget/dist/
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+cli/dist/
+*.egg-info/
+.env
+.env.*
+legacy/tier2/.certs/

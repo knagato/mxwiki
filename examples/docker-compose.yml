@@ -1,0 +1,23 @@
+# Serve the widget with automatic HTTPS on its own hostname.
+#   cd widget && pnpm install && pnpm build && cd ../examples
+#   docker compose up -d
+# Then pin it in a room: mxwiki --room '#team:example.org' pin --url https://wiki.example.org/
+services:
+  wiki:
+    image: caddy:2-alpine
+    # Or use the prebuilt image instead of the bind mount of widget/dist:
+    # image: ghcr.io/knagato/mxwiki:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      MXWIKI_SITE: wiki.example.org
+      MXWIKI_FRAME_ANCESTORS: https://element.example.org
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../widget/dist:/srv:ro
+      - caddy_data:/data
+
+volumes:
+  caddy_data:

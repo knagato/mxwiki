@@ -1,0 +1,25 @@
+{
+  "name": "mxwiki-widget",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test test/unit.test.mjs",
+    "test:e2e": "node test/run.mjs",
+    "e2e:setup": "node test/setup-synapse.mjs"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.15",
+    "marked": "^18.0.13",
+    "matrix-widget-api": "^1.19.0"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.10.0",
+    "vite": "^8.3.0"
+  }
+}

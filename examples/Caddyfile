@@ -1,0 +1,26 @@
+# Serves the built widget (widget/dist) as static files.
+# Used as-is by the Docker image (Dockerfile) and by examples/docker-compose.yml.
+#
+#   MXWIKI_SITE             site address: a hostname for automatic HTTPS
+#                           (wiki.example.org), or ":80" behind another proxy (default)
+#   MXWIKI_FRAME_ANCESTORS  who may embed the widget in an iframe: your Element
+#                           origin(s), space-separated (default: 'self' only — set it!)
+{$MXWIKI_SITE::80} {
+	root * /srv
+	encode zstd gzip
+
+	# Only the listed clients may frame the widget. Element loads it in an iframe,
+	# so its origin must be here or the widget stays blank.
+	header Content-Security-Policy "frame-ancestors 'self' {$MXWIKI_FRAME_ANCESTORS:}"
+	header X-Content-Type-Options nosniff
+	header Referrer-Policy no-referrer
+
+	# Hashed bundles never change; index.html must be revalidated so a new
+	# release is picked up on the next widget load.
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	@html path / /index.html
+	header @html Cache-Control "no-cache"
+
+	file_server
+}

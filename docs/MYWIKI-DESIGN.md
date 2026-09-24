@@ -1,5 +1,9 @@
 # MyWiki 設計メモ（Matrix ネイティブ Wiki）
 
+> mxwiki の前身 MyWiki（2026-08〜09）の設計メモを、公開用に整理したもの（検証環境や個人の運用に
+> 固有の記述は除いた）。PoC は `legacy/` にある。v0.1 で何を引き継ぎ何を変えたかは
+> [DESIGN.md](DESIGN.md)、ここでの「本文 = timeline」モデルは [SPEC.md](SPEC.md) の Profile T。
+
 Matrix を土台にした「情報がフローに流れない（ストック型）」コミュニティ Wiki。
 Element のようなチャット UI ではなく、専用の Web SPA でページ指向の閲覧・編集を行う。
 
@@ -14,7 +18,7 @@ Element のようなチャット UI ではなく、専用の Web SPA でペー�
 
 ## Tier 1: 限定公開 Wiki（サーバーアカウント単位で閲覧制限）
 
-- **状態: ほぼ完成**（PoC = `mywiki/plan-a.html` を本線に、`index.html`/`plan-b.html` はデモ）。
+- PoC = `legacy/tier1-poc/plan-a.html` が本線、`index.html` / `plan-b.html` はデモ。
 - 本文 = 平文 timeline イベント、画像 = 平文 media（mxc 参照）。
 - 閲覧境界:
   - ページ一覧・タイトル・本文（state/timeline）= **ルームメンバー限定**（membership が効く）。
@@ -24,7 +28,7 @@ Element のようなチャット UI ではなく、専用の Web SPA でペー�
 
 ## Tier 2: 暗号化 Wiki（ルームメンバー単位で閲覧制限）
 
-- **状態: PoC 実装済み**（`mywiki/tier2/`, Vite + matrix-js-sdk 37 + rust-crypto-wasm + matrix-encrypt-attachment）。
+- PoC = `legacy/tier2/`（Vite + matrix-js-sdk 37 + rust-crypto-wasm + matrix-encrypt-attachment）。
   - 実装: 本文=暗号化 timeline(`m.room.message`), state ポインタ `com.example.wiki.page_e {title,latest_event_id}`,
     画像=encryptAttachment で暗号化アップロード＋復号鍵を本文 content の `wiki.images` に格納、
     本文中は `![](enc:IMGID)` プレースホルダ。回復キー/パスフレーズ解錠 UI あり。
@@ -70,10 +74,11 @@ Element のようなチャット UI ではなく、専用の Web SPA でペー�
 - SPA は「そのルームが暗号化か否か」で読み書き経路（平文 fetch / SDK 暗号化）を切り替える。
 - ページ指向 UI・state ポインタ方式・履歴モデルは両 Tier 共通。
 
-## Obsidian Vault 連携（検討メモ 2026-09-12, 未実装）
+## Obsidian Vault 連携（検討メモ 2026-09-12）
 
 方針: **Matrix が正・Vault は読み取りミラー**。まず Tier1 から。編集は SPA のみ、
 Obsidian はグラフビュー/バックリンク付きの閲覧・検索クライアントとして使う。
+（v0.1 では `mxwiki mirror <dir>` が Profile S 向けの簡易版。以下は timeline 本文モデルでの設計。）
 
 ### 前提（調査で確定）
 
@@ -139,7 +144,7 @@ Python stdlib + urllib で 100〜200行、依存の追加も不要。
 - **画像（規則のみ先決め）**: 本文の `![](mxc://server/id)` → `![[_attachments/<id>.<ext>]]`。
   実体は `GET /_matrix/client/v1/media/download/{server}/{id}`（要 Bearer）、拡張子は Content-Type から。
   `_attachments/` は event_id と無関係に不変なので、既存ならダウンロードごとスキップ。
-- **リンク**: `[[slug]]` を mywiki の正式リンク構文に採用すれば（下記 TODO）、ミラーは本文を無変換で出すだけで
+- **リンク**: `[[slug]]` を正式リンク構文に採用すれば、ミラーは本文を無変換で出すだけで
   バックリンク/グラフビューが機能する。ミラー側に変換ロジックは不要。
 
 ## 制限・注意（Matrix 由来）
@@ -148,12 +153,12 @@ Python stdlib + urllib で 100〜200行、依存の追加も不要。
 - state event 数はハード上限なしだが数千で状態解決が重い → ルーム分割で対応。
 - 編集履歴は無限に蓄積（版管理の裏返し）。
 
-## 未実装 TODO（本命の作り込み）
+## MyWiki 時点の TODO と v0.1 での状況
 
-- [ ] 編集履歴の表示（過去イベント / replaces_state を辿る）
-- [ ] ページ間 `[[リンク]]`
-- [ ] 編集権限の制御（Power Level で編集者を限定）
-- [ ] 画像添付 UI（Tier1 は `plan-b.html` に実装済み、本線へ移植）
-- [ ] Tier 2: matrix-js-sdk 版 SPA（E2EE ルーム、暗号化 timeline + 暗号化 media + 回復キー UX）
-- [ ] 常設化（http 配信を docker-compose / launchd に）
-- [ ] Obsidian Vault 読み取りミラー（Tier1, 案A: 定期 CLI）→ 上記「Obsidian Vault 連携」節
+- 編集履歴の表示 → v0.1 で実装（widget の履歴ビュー、`mxwiki history`）
+- ページ間 `[[リンク]]` → v0.1 で実装
+- 編集権限の制御（Power Level） → v0.1 で実装（`mxwiki grant-edit`）
+- 常設化 → v0.1 で静的配信 + Docker イメージ
+- Obsidian Vault 読み取りミラー → v0.1 は `mxwiki mirror`（Profile S、簡易版）
+- 画像添付 UI → 未実装（`plan-b.html` のデモのみ）
+- Tier 2（E2EE）→ Profile T として仕様化、widget は未実装

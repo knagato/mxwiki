@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wiki</title>
+<link rel="icon" href="data:,">
+</head>
+<body>
+<div id="gate" class="gate">
+  <div class="card">
+    <h1>Wiki</h1>
+    <p id="gateMsg" class="muted" data-t="gate.connecting"></p>
+    <details id="devLogin">
+      <summary class="muted" data-t="dev.summary"></summary>
+      <label for="devHs" data-t="dev.homeserver"></label><input id="devHs" placeholder="https://matrix.example.org">
+      <label for="devRoom" data-t="dev.room"></label><input id="devRoom" placeholder="#team:example.org">
+      <label for="devToken" data-t="dev.token"></label><input id="devToken" type="password" autocomplete="off">
+      <div style="margin-top:12px"><button class="primary" id="devBtn" data-t="dev.connect"></button></div>
+    </details>
+    <div class="err" id="gateErr"></div>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <aside id="sidebar">
+    <header>
+      <b>📖 Wiki</b>
+      <span class="grow"></span>
+      <input id="filter" data-t-placeholder="list.filter" data-t-aria-label="list.filterLabel">
+      <button id="newBtn" data-t-title="list.new">＋</button>
+    </header>
+    <ul id="pages"></ul>
+    <footer><span id="whoami" class="muted"></span><span id="mode" class="badge"></span></footer>
+  </aside>
+  <section id="main">
+    <div id="toolbar">
+      <button id="menuBtn" data-t-title="toolbar.menu" class="narrow-only">☰</button>
+      <span class="title" id="curTitle"></span>
+      <button id="histBtn" data-t-title="toolbar.historyTitle" data-t="toolbar.history"></button>
+      <button id="editBtn" data-t="toolbar.edit"></button>
+      <button class="primary" id="saveBtn" hidden data-t="toolbar.save"></button>
+      <button id="cancelBtn" hidden data-t="toolbar.cancel"></button>
+    </div>
+    <div id="meta" class="muted"></div>
+    <div id="view" class="prose"></div>
+    <div id="editor" hidden>
+      <div class="row">
+        <input class="pgslug" id="edSlug" data-t-placeholder="editor.slug" spellcheck="false">
+        <input class="pgtitle" id="edTitle" data-t-placeholder="editor.title">
+      </div>
+      <textarea id="edBody" data-t-placeholder="editor.body" spellcheck="false"></textarea>
+      <div class="row between"><span id="size" class="muted"></span><span class="err" id="saveErr"></span></div>
+    </div>
+    <div id="history" hidden></div>
+  </section>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

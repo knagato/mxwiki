@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  names:
+    name: No upstream names
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/check-no-upstream-names.sh
+
+  cli:
+    name: CLI (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: astral-sh/setup-uv@v6
+      - name: Lint
+        run: uvx ruff check cli
+      - name: Test
+        run: python -m unittest discover -s cli/tests -v
+      - name: Build
+        run: uv build cli
+
+  widget:
+    name: Widget build + unit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: widget
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: widget/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: widget/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+
+  e2e:
+    name: Widget E2E (local Synapse)
+    runs-on: ubuntu-latest
+    # A services: container cannot be given a generated homeserver.yaml before
+    # it starts, so Synapse is started by the same script used locally.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: widget/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: widget/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: widget
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+      - name: Start Synapse
+        run: scripts/synapse-dev.sh up
+      - name: Register user, create room, grant page edits
+        run: node test/setup-synapse.mjs > /dev/null
+        working-directory: widget
+      - name: Run E2E
+        run: node test/run.mjs
+        working-directory: widget
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+      - name: Synapse logs
+        if: failure()
+        run: docker logs mxwiki-synapse 2>&1 | tail -200

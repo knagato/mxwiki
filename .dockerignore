@@ -1,0 +1,6 @@
+.git
+**/node_modules
+widget/dist
+legacy
+cli
+docs

@@ -44,7 +44,7 @@ async function startClientWithCrypto(c) {
   // crypto ストアをデバイス別に分離（再ログインで新デバイスになっても旧ストアと衝突しない）
   const prefix = ("mywiki_" + c.getUserId() + "_" + c.getDeviceId()).replace(/[^A-Za-z0-9_]/g, "_");
   await c.initRustCrypto({ useIndexedDB: true, cryptoDatabasePrefix: prefix });
-  // knagato は多数ルームに参加しているため、Wiki ルームだけに絞って sync を高速化する。
+  // 利用者は多数ルームに参加しているため、Wiki ルームだけに絞って sync を高速化する。
   // to_device / device_lists（E2EE 用）は room フィルタの対象外なので暗号化は問題なく動く。
   const filter = new sdk.Filter(c.getUserId());
   filter.setDefinition({
