@@ -15,10 +15,41 @@ the room's members can read the wiki, and its power levels decide who edits it.
 
 ![mxwiki in Element's right panel: the page tree with folders, and the Home page with [[links]], one of them dashed because the page does not exist yet](docs/images/screenshot.png)
 
+## New to Matrix?
+
+[Matrix](https://matrix.org) is an open protocol for chat. It works like email for
+messaging: anyone can run a server, and servers talk to each other. People use it through a
+client app such as [Element](https://element.io), which looks much like Slack or Discord.
+
+mxwiki gives a Matrix chat room a wiki, so notes and decisions that would scroll away in the
+chat stay where people can find them. The pages are stored in the room itself, so there is no
+wiki backend, database or separate login; the only thing to host is the widget's static files.
+
+Terms used below:
+
+| Term | Meaning |
+|---|---|
+| homeserver | the Matrix server your account lives on (Synapse is the most common one) |
+| room | a chat room. One room = one wiki |
+| Element | the most widely used Matrix client (web, desktop, mobile) |
+| state event | a named piece of data kept on the room, apart from the chat messages. Each page is one |
+| power level | a member's rank in the room (Element's defaults: 0 member, 50 moderator, 100 admin); it decides who may change what |
+| widget | a small web app that a client shows inside a room. The wiki's page view and editor are one |
+| access token | a password-like key that lets a script act as your account |
+
 ## Try it in 5 minutes
 
-You need a Matrix account that can pin widgets in a room (power level 50) and a place to
-serve static files over HTTPS.
+To look around first without a Matrix account, `examples/local/` runs a throwaway
+homeserver, Element and the widget on your machine with Docker
+([CONTRIBUTING.md](CONTRIBUTING.md#try-it-in-element-local-docker)):
+
+```sh
+cd examples/local && docker compose up -d --build && ./setup.sh
+# open http://localhost:18915 and sign in as alice / mxwiki-local
+```
+
+On a real homeserver, you need a Matrix account that can pin widgets in a room (power
+level 50) and a place to serve static files over HTTPS.
 
 ```sh
 # 1. Build the widget and serve it (any static host; see docs/DEPLOY.md for headers)
@@ -94,6 +125,13 @@ that store bodies in the timeline. They are kept as the reference implementation
 mxwiki は Matrix のルーム 1 つをページ指向の Wiki にするツールです。1 ページ = 1 つの
 state event（`com.knatrix.mxwiki.page`、state_key = slug）で、ルームのメンバーシップと
 power level がそのまま Wiki の閲覧・編集権限になります。サーバー側のコードはありません。
+
+Matrix は、誰でもサーバー（homeserver）を立てられ、サーバー同士がつながるオープンなチャットの
+プロトコルです。Element などのアプリから Slack や Discord のように使います。mxwiki はその
+チャットルームに Wiki を付け、チャットでは流れてしまう情報をページとして残します。ページは
+ルーム自体に保存されるので、Wiki 用のサーバーやデータベース、別のログインは要りません
+（配信するのはウィジェットの静的ファイルだけです）。Docker だけで手元で試すなら
+`examples/local/` を使います（上の「Try it in 5 minutes」）。
 
 - **widget/**: Element のルームウィジェット。フォルダ付きページ一覧、Markdown、`[[slug]]`
   リンク、編集、履歴、他人の保存の即時反映。UI 文言は現在日本語（`widget/src/strings.js`
